@@ -59,7 +59,7 @@ viz = [
 dev = ["vibe-coding-evaluator[test,sast,providers,viz]"]
 
 [project.urls]
-"Source" = "https://github.com/kkkahaki/vibe-coding-evaluator"
+"Source" = "https://github.com/snakeka/vibe-coding-evaluator"
 
 [tool.setuptools.packages.find]
 where = ["."]
