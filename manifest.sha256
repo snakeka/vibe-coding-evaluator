@@ -1,0 +1,20 @@
+# manifest.sha256 — §B.6 Run-sealing artefact
+# Computed by scripts/generate_manifest.py at run completion over:
+#   - the input corpus (corpus/*.py files)
+#   - the per-pipeline result files (results/sast/, results/judge/, results/benchmark/)
+#   - the verdict matrix (results/verdict_matrix.csv, results/verdict_matrix.json)
+#
+# Schema: one line per file, "<sha256>  <relative_path>".
+# The line "<hash>  manifest.sha256" at the top seals the manifest itself,
+# so any post-hoc modification of the manifest is detectable.
+#
+# Per §3.7, this manifest is the auditable seal of an evaluation run.
+# Re-execution against the same corpus + same models.lock + same
+# prompts.lock must produce an identical manifest (modulo provider-side
+# non-determinism logged separately in judge/audit_log.jsonl).
+#
+# THIS FILE IS A PLACEHOLDER. A real run populates it via:
+#     python scripts/generate_manifest.py --run-dir results/<run-id>/
+
+# Placeholder line — to be replaced by generate_manifest.py output
+PLACEHOLDER  manifest.sha256

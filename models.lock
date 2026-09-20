@@ -1,0 +1,77 @@
+# models.lock — §3.5 Freeze artefact (Component 3 provider layer)
+# Schema: { provider, model_id, endpoint, version_hash, locked_at }
+#
+# This file is the substrate for §3.5's freeze commitment: every model
+# identifier, provider endpoint and known version hash is recorded at
+# freeze time, so any silent change between runs is detectable before
+# the run proceeds (per §B.6). Each call to benchmark/provider_layer.py
+# reads this file at start-up and refuses to proceed if the lock has
+# been modified without a documented bump.
+#
+# The lock-generation timestamp is ISO-8601 UTC. version_hash is the
+# provider's reported version where exposed (e.g. ollama show output);
+# where the provider exposes no version, the field is null and the
+# audit log records the same.
+#
+# Per §3.7 / §B.6.4, generation calls are pinned to temperature=0 and
+# seed values where supported; non-determinism in providers that do not
+# support seeding is logged as a §3.7 sealing failure rather than as
+# a framework bug.
+
+providers:
+  - provider: ollama
+    model_id: qwen2.5-coder:32b
+    endpoint: http://192.168.5.204:11434
+    version_hash: null
+    locked_at: "2026-09-20T00:00:00Z"
+    notes: "Local Qwen 2.5 Coder 32B running on user's Mac (KAKAMINISFORUM, 192.168.5.204) — §3.5 baseline model (Guo et al., 2024). OpenAI-compatible API at /v1."
+
+  - provider: ollama
+    model_id: qwen2.5-coder:14b
+    endpoint: http://192.168.5.204:11434
+    version_hash: null
+    locked_at: "2026-09-20T00:00:00Z"
+    notes: "Local Qwen 2.5 Coder 14B — smaller-tier model in the cross-model comparison (§5.5)."
+
+  - provider: openai
+    model_id: codex
+    endpoint: https://api.openai.com/v1
+    version_hash: codex-2025-11
+    locked_at: "2026-09-20T00:00:00Z"
+    notes: "OpenAI Codex via /v1/chat/completions (Chen et al., 2021) — interface invoked via litellm. Requires OPENAI_API_KEY in environment. May be subject to provider-side availability."
+
+  - provider: anthropic
+    model_id: claude-3-5-sonnet-20241022
+    endpoint: https://api.anthropic.com
+    version_hash: claude-3-5-sonnet-20241022
+    locked_at: "2026-09-20T00:00:00Z"
+    notes: "Anthropic Claude 3.5 Sonnet via litellm. Requires ANTHROPIC_API_KEY. NOTE: HK-based egress may receive HTTP 403 from this provider; route via SOCKS proxy or alternate region if running from HK."
+
+  - provider: mistral
+    model_id: mistral-large-latest
+    endpoint: https://api.mistral.ai/v1
+    version_hash: null
+    locked_at: "2026-09-20T00:00:00Z"
+    notes: "Mistral Large via litellm OpenAI-compatible endpoint. Requires MISTRAL_API_KEY."
+
+# §3.5 freeze tag — propagated into every audit-log record.
+# All calls within one evaluation run share a freeze_tag so that
+# re-execution against the same freeze reproduces the same orderings,
+# severities and verdicts up to provider-side non-determinism.
+freeze_tag: "vce-2026-09-20-frozen"
+
+# Generation parameters pinned across every call (per §B.6.4).
+generation_params:
+  temperature: 0.0
+  top_p: 1.0
+  frequency_penalty: 0.0
+  presence_penalty: 0.0
+  max_tokens_judge: 224    # §B.4.2 verbosity ceiling
+  max_tokens_generation: 1024  # for cross-model prompt completion
+
+# Per-call determinism: where supported, an explicit seed is passed.
+# Providers that do not support seed= are logged as seed=null.
+seed_policy:
+  supports_seed: ["openai", "mistral"]
+  no_seed_supported: ["ollama", "anthropic"]
+  seed_strategy: "drawn_from_seeded_random_per_call"

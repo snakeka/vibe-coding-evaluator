@@ -1,0 +1,85 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vibe-coding-evaluator"
+version = "0.1.0"
+description = "Design-science framework for validating LLM-generated code (SAST + LLM-as-Judge + cross-model benchmark + report generator)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [
+  {name = "KK Kahaki"},
+]
+keywords = ["llm", "static-analysis", "sast", "llm-as-judge", "vibe-coding", "cybersecurity", "codex", "qwen-coder"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Security",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+dependencies = [
+  "litellm>=1.40.0",
+  "pydantic>=2.5",
+  "pyyaml>=6.0",
+  "python-dotenv>=1.0",
+  "tenacity>=8.2",
+  "rich>=13.7",
+]
+
+[project.optional-dependencies]
+# SAST tools — install these if you want Bandit and Semgrep on PATH
+sast = [
+  "bandit>=1.7",
+  "semgrep>=1.50",
+]
+# LLM providers
+providers = [
+  "openai>=1.30",
+  "anthropic>=0.20",
+  "mistralai>=0.4",
+  "ollama>=0.2",
+]
+# Test infrastructure
+test = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "pytest-mock>=3.12",
+  "responses>=0.25",   # mock HTTP for litellm provider calls
+]
+# Dashboard
+viz = [
+  "jinja2>=3.1",
+]
+
+dev = ["vibe-coding-evaluator[test,sast,providers,viz]"]
+
+[project.urls]
+"Source" = "https://github.com/kkkahaki/vibe-coding-evaluator"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sast*", "judge*", "benchmark*", "report*", "common*", "scripts*"]
+exclude = ["tests*", "corpus*", "results*", "docs*", "assets*"]
+
+[tool.pytest.ini_options]
+minversion = "7.4"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+  "-ra",
+  "--strict-markers",
+  "--strict-config",
+  "--tb=short",
+]
+markers = [
+  "unit: pure unit tests with no external dependencies",
+  "integration: integration tests requiring bandit/semgrep on PATH",
+  "live: tests that make real LLM API calls (require API keys)",
+]
