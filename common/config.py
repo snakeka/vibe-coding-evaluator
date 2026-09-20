@@ -55,10 +55,51 @@ class ProviderSpec:
 
     @property
     def api_base(self) -> str | None:
-        """For LiteLLM, the API base URL when the provider requires it."""
-        if self.provider == "ollama":
+        """For LiteLLM, the API base URL when the provider requires it.
+
+        Returns the endpoint for providers that need api_base hint
+        (ollama + deepseek — both use OpenAI-compatible /v1 path).
+        Other providers (openai, anthropic) have implicit defaults in
+        litellm that work without an explicit api_base.
+        """
+        if self.provider in ("ollama", "deepseek"):
             return self.endpoint
         return None
+
+    @property
+    def is_locally_served(self) -> bool:
+        """True if the model runs on local hardware (not a cloud API).
+
+        Used by the Cross-Model Benchmarker to distinguish in-process
+        inference cost from external API latency/cost (§5.5).
+        """
+        return self.provider == "ollama"
+
+    @property
+    def is_region_blocked(self) -> bool:
+        """True if egress from the current region is known to fail.
+
+        Anthropic HTTP 403 from HK egress is the canonical case (§5.5
+        cross-model robustness discussion). The Cross-Model Benchmarker
+        treats such providers as optional: a 403 records the row as
+        ``provider_unavailable`` rather than aborting the run.
+        """
+        # This is a coarse signal — the actual 403 is detected at call
+        # time by benchmark/provider_layer. We use this flag to skip
+        # the Anthropic row entirely when running from HK egress without
+        # any proxy, and to emit a clear audit-log marker.
+        return self.provider == "anthropic"
+
+    @property
+    def api_key_env_var(self) -> str:
+        """The env var name that holds the API key for this provider."""
+        return {
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+            "deepseek": "DEEPSEEK_API_KEY",
+            "mistral": "MISTRAL_API_KEY",
+            "ollama": "",  # local, no key required
+        }.get(self.provider, f"{self.provider.upper()}_API_KEY")
 
 
 @dataclass(frozen=True)

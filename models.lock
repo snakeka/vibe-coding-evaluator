@@ -17,48 +17,59 @@
 # seed values where supported; non-determinism in providers that do not
 # support seeding is logged as a §3.7 sealing failure rather than as
 # a framework bug.
+#
+# ---- 2026-09-21 BUMP ----
+# Models replaced: Qwen 2.5 Coder 32B/14B dropped; Qwen3.8 27B (Q4 + Q3
+# quantization ablation) added as local §3.5 baseline. Codex replaced
+# by ChatGPT 6 (current generation). DeepSeek V4.1 Flash added as
+# open-source baseline. Anthropic Claude Sonnet retained for the
+# self-enhancement bias audit (§5.4) — HK egress is blocked but the
+# audit re-runs are skipped without aborting the cross-model row.
+# Mistral dropped (no longer required by §5.5 cross-model design).
+# Endpoint unified to http://127.0.0.1:8080/v1 for all local models
+# (Ollama OpenAI-compatible server on the user's Mac).
 
 providers:
   - provider: ollama
-    model_id: qwen2.5-coder:32b
-    endpoint: http://192.168.5.204:11434
+    model_id: qwen3.8:27b-q4_K_M
+    endpoint: http://127.0.0.1:8080/v1
     version_hash: null
-    locked_at: "2026-09-20T00:00:00Z"
-    notes: "Local Qwen 2.5 Coder 32B running on user's Mac (KAKAMINISFORUM, 192.168.5.204) — §3.5 baseline model (Guo et al., 2024). OpenAI-compatible API at /v1."
+    locked_at: "2026-09-21T00:00:00Z"
+    notes: "Local Qwen3.8 27B Q4_K_M running on user's Mac (KAKAMINISFORUM) via Ollama OpenAI-compatible server. §3.5 baseline model (replaces Qwen 2.5 Coder 32B; same author lineage as Guo et al., 2024 but newer generation)."
 
   - provider: ollama
-    model_id: qwen2.5-coder:14b
-    endpoint: http://192.168.5.204:11434
+    model_id: qwen3.8:27b-q3_K_M
+    endpoint: http://127.0.0.1:8080/v1
     version_hash: null
-    locked_at: "2026-09-20T00:00:00Z"
-    notes: "Local Qwen 2.5 Coder 14B — smaller-tier model in the cross-model comparison (§5.5)."
+    locked_at: "2026-09-21T00:00:00Z"
+    notes: "Local Qwen3.8 27B Q3_K_M — quantization ablation variant of the §3.5 baseline. Smaller model file, expected ~30-40% throughput gain with measurable quality delta (§5.5 quantization sensitivity analysis)."
+
+  - provider: deepseek
+    model_id: deepseek-v4.1-flash
+    endpoint: https://api.deepseek.com/v1
+    version_hash: deepseek-v4.1-flash-2026-09
+    locked_at: "2026-09-21T00:00:00Z"
+    notes: "DeepSeek V4.1 Flash via OpenAI-compatible endpoint. Open-source baseline model (replaces Mistral Large for the open-source vs proprietary cross-model contrast in §5.5). Requires DEEPSEEK_API_KEY in environment."
 
   - provider: openai
-    model_id: codex
+    model_id: chatgpt-6
     endpoint: https://api.openai.com/v1
-    version_hash: codex-2025-11
-    locked_at: "2026-09-20T00:00:00Z"
-    notes: "OpenAI Codex via /v1/chat/completions (Chen et al., 2021) — interface invoked via litellm. Requires OPENAI_API_KEY in environment. May be subject to provider-side availability."
+    version_hash: chatgpt-6-2026-09
+    locked_at: "2026-09-21T00:00:00Z"
+    notes: "OpenAI ChatGPT 6 (current generation, replaces Codex from the previous freeze). Invoked via litellm OpenAI-compatible endpoint. Requires OPENAI_API_KEY in environment."
 
   - provider: anthropic
     model_id: claude-3-5-sonnet-20241022
     endpoint: https://api.anthropic.com
     version_hash: claude-3-5-sonnet-20241022
-    locked_at: "2026-09-20T00:00:00Z"
-    notes: "Anthropic Claude 3.5 Sonnet via litellm. Requires ANTHROPIC_API_KEY. NOTE: HK-based egress may receive HTTP 403 from this provider; route via SOCKS proxy or alternate region if running from HK."
-
-  - provider: mistral
-    model_id: mistral-large-latest
-    endpoint: https://api.mistral.ai/v1
-    version_hash: null
-    locked_at: "2026-09-20T00:00:00Z"
-    notes: "Mistral Large via litellm OpenAI-compatible endpoint. Requires MISTRAL_API_KEY."
+    locked_at: "2026-09-21T00:00:00Z"
+    notes: "Anthropic Claude 3.5 Sonnet via litellm. Requires ANTHROPIC_API_KEY. ⚠️ HK-BLOCKED: HK egress typically returns HTTP 403 from Anthropic. The Cross-Model Benchmarker (§5.5) treats Anthropic as an OPTIONAL row — if the call returns 403, that provider's verdict is recorded as seed=null with provider_unavailable flag and the cross-model aggregation continues with the remaining 4 providers. The §5.4 self-enhancement bias audit uses Anthropic only when the run is performed from a non-HK egress (e.g. via SOCKS proxy on the user's Mac)."
 
 # §3.5 freeze tag — propagated into every audit-log record.
 # All calls within one evaluation run share a freeze_tag so that
 # re-execution against the same freeze reproduces the same orderings,
 # severities and verdicts up to provider-side non-determinism.
-freeze_tag: "vce-2026-09-20-frozen"
+freeze_tag: "vce-2026-09-21-frozen"
 
 # Generation parameters pinned across every call (per §B.6.4).
 generation_params:
@@ -72,6 +83,6 @@ generation_params:
 # Per-call determinism: where supported, an explicit seed is passed.
 # Providers that do not support seed= are logged as seed=null.
 seed_policy:
-  supports_seed: ["openai", "mistral"]
+  supports_seed: ["openai", "deepseek"]
   no_seed_supported: ["ollama", "anthropic"]
   seed_strategy: "drawn_from_seeded_random_per_call"

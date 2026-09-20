@@ -79,9 +79,9 @@ pip install -r requirements.txt
 
 # 2. Configure
 export OPENAI_API_KEY="sk-..."        # optional, only if using OpenAI provider
-export ANTHROPIC_API_KEY="sk-ant-..."  # optional
-export MISTRAL_API_KEY="..."           # optional
-export OLLAMA_BASE_URL="http://192.168.5.204:11434"  # default if running on user's Mac
+export ANTHROPIC_API_KEY="sk-ant-..."  # optional, only if using Anthropic (HK egress blocked — see §5.5)
+export DEEPSEEK_API_KEY="..."          # optional, only if using DeepSeek provider
+export OLLAMA_BASE_URL="http://127.0.0.1:8080/v1"  # default in models.lock; Ollama OpenAI-compat server on user's Mac
 
 # 3. Run the illustrative 3-sample evaluation
 python scripts/run_full_evaluation.py \

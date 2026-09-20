@@ -60,6 +60,33 @@ def _is_rate_limit(exc: Exception) -> bool:
     )
 
 
+def _is_region_blocked(exc: Exception) -> bool:
+    """Heuristic: is this a region/egress block (HTTP 403)?
+
+    Anthropic returns 403 "Request not allowed" from HK egress (§5.5
+    robustness discussion). OpenAI may do the same for some endpoints.
+    When detected, we raise :class:`RegionBlockedError` so the caller
+    can mark the row ``provider_unavailable`` without aborting the run.
+    """
+    s = str(exc).lower()
+    return (
+        "403" in s
+        or "request not allowed" in s
+        or "unsupported country" in s
+        or "region" in s and "not supported" in s
+    )
+
+
+class RegionBlockedError(Exception):
+    """Raised when the provider blocks egress from the current region.
+
+    Per §5.5 cross-model robustness discussion: the Cross-Model
+    Benchmarker treats such providers as optional. A region-block
+    records the row as ``provider_unavailable`` and the run continues
+    with the remaining providers — never aborts the full run.
+    """
+
+
 def _generate_with_retry(
     *,
     call_kwargs: dict[str, Any],
@@ -75,6 +102,13 @@ def _generate_with_retry(
         try:
             return litellm.completion(**call_kwargs)
         except Exception as exc:
+            # Region/egress blocks (e.g. Anthropic 403 from HK) are not
+            # retried — they will never succeed. Raise immediately so
+            # the caller can record ``provider_unavailable``.
+            if _is_region_blocked(exc):
+                raise RegionBlockedError(
+                    f"Egress blocked for {call_kwargs.get('model')}: {exc}"
+                ) from exc
             if not _is_rate_limit(exc):
                 raise
             if attempt == retry_policy.max_attempts:
@@ -97,19 +131,32 @@ def _generate_with_retry(
 # ---------------------------------------------------------------------------
 # Provider API-key resolution
 # ---------------------------------------------------------------------------
+#
+# We delegate to ProviderSpec.api_key_env_var (added in common/config.py)
+# which is the canonical mapping. The local _API_KEY_ENV_VAR fallback
+# below is kept for direct callers that have only a provider name
+# (no ProviderSpec). New providers MUST be added in BOTH places, or
+# callers should prefer the ProviderSpec-based path.
 
 
-_API_KEY_ENV_VAR = {
+_API_KEY_ENV_VAR_FALLBACK = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
+    "deepseek": "DEEPSEEK_API_KEY",
     "mistral": "MISTRAL_API_KEY",
     "ollama": None,    # Ollama has no API key
 }
 
 
 def _resolve_api_key(provider: str) -> str | None:
-    """Return the API key for a provider, or None if not configured."""
-    env_var = _API_KEY_ENV_VAR.get(provider)
+    """Return the API key for a provider, or None if not configured.
+
+    Looks up the env var name from the fallback mapping. Prefer
+    passing a ProviderSpec and reading ``spec.api_key_env_var``
+    directly — that path is automatically updated when new providers
+    are added to models.lock.
+    """
+    env_var = _API_KEY_ENV_VAR_FALLBACK.get(provider)
     if env_var is None:
         return None
     return os.environ.get(env_var)
@@ -174,8 +221,9 @@ def generate(
     policy = retry_policy or RetryPolicy()
     api_key = _resolve_api_key(spec.provider)
     if spec.provider != "ollama" and not api_key:
+        env_var = spec.api_key_env_var or f"{spec.provider.upper()}_API_KEY"
         raise RuntimeError(
-            f"Provider '{spec.provider}' requires {_API_KEY_ENV_VAR[spec.provider]} "
+            f"Provider '{spec.provider}' requires {env_var} "
             f"in environment or .env"
         )
 

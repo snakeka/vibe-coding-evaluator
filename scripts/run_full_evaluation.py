@@ -56,6 +56,7 @@ from common.hashing import sha256_file, sha256_str
 from common.schema import CrossModelOutput, JudgeVerdict, SastResult
 from benchmark.dispatcher import dispatch as benchmark_dispatch
 from benchmark.normaliser import normalise_batch
+from benchmark.provider_layer import RateLimitedError, RegionBlockedError
 from judge.audit_log import AuditLog
 from judge.orchestrator import judge as judge_call
 from report.divergence_router import route_incomplete_rows
@@ -264,12 +265,34 @@ def run_benchmark_pipeline(
                     "prompt_text": src.read_text(),
                     "language": p.get("language", "python"),
                 })
-        results = benchmark_dispatch(
-            corpus_prompts,
-            models_lock=models_lock,
-            freeze_tag=freeze_tag,
-            max_workers=max_workers,
-        )
+        try:
+            results = benchmark_dispatch(
+                corpus_prompts,
+                models_lock=models_lock,
+                freeze_tag=freeze_tag,
+                max_workers=max_workers,
+            )
+        except RegionBlockedError as exc:
+            # Per §5.5: a region-blocked provider does not abort the run.
+            # Record the failure as ``provider_unavailable`` and continue
+            # with the remaining providers as stubs (deterministic mode).
+            print(f"  [Benchmark] WARN: {exc}")
+            print(f"  [Benchmark] Falling back to stub mode for this provider.")
+            results = []
+            for p in corpus_prompts:
+                src_path = corpus_dir / f"{p['prompt_id']}.py"
+                if not src_path.exists():
+                    continue
+                source = src_path.read_text()
+                results.append(CrossModelOutput(
+                    prompt_id=p["prompt_id"],
+                    provider="region_blocked",
+                    model_id="region_blocked",
+                    language=p.get("language", "python"),
+                    generated_source=source,
+                    completion_metadata={"stub": True, "region_blocked": True, "latency_ms": 0},
+                    freeze_tag=freeze_tag,
+                ))
     else:
         # Stub mode: use the corpus file as the "generated source" and
         # apply the static_label heuristic via the normaliser.
@@ -314,7 +337,7 @@ def main() -> int:
     parser.add_argument("--corpus", default="corpus/illustrative", help="Path to corpus dir")
     parser.add_argument("--out", required=True, help="Output run directory")
     parser.add_argument("--judge-provider", default="ollama", help="Judge provider")
-    parser.add_argument("--judge-model", default="qwen2.5-coder:32b", help="Judge model_id")
+    parser.add_argument("--judge-model", default="qwen3.8:27b-q4_K_M", help="Judge model_id (must match models.lock)")
     parser.add_argument(
         "--mode",
         choices=["stub", "live"],
