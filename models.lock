@@ -32,44 +32,44 @@
 providers:
   - provider: ollama
     model_id: qwen3.8:27b-q4_K_M
-    endpoint: http://127.0.0.1:8080/v1
+    endpoint: http://127.0.0.1:11434
     version_hash: null
-    locked_at: "2026-09-21T00:00:00Z"
-    notes: "Local Qwen3.8 27B Q4_K_M running on user's Mac (KAKAMINISFORUM) via Ollama OpenAI-compatible server. §3.5 baseline model (replaces Qwen 2.5 Coder 32B; same author lineage as Guo et al., 2024 but newer generation)."
+    locked_at: "2026-09-21T01:00:00Z"
+    notes: "Local Qwen3.8 27B Q4_K_M running on user's Mac (KAKAMINISFORUM) via Ollama (port 11434). §3.5 baseline model (replaces Qwen 2.5 Coder 32B; same author lineage as Guo et al., 2024 but newer generation)."
 
   - provider: ollama
     model_id: qwen3.8:27b-q3_K_M
-    endpoint: http://127.0.0.1:8080/v1
+    endpoint: http://127.0.0.1:11434
     version_hash: null
-    locked_at: "2026-09-21T00:00:00Z"
+    locked_at: "2026-09-21T01:00:00Z"
     notes: "Local Qwen3.8 27B Q3_K_M — quantization ablation variant of the §3.5 baseline. Smaller model file, expected ~30-40% throughput gain with measurable quality delta (§5.5 quantization sensitivity analysis)."
 
   - provider: deepseek
     model_id: deepseek-v4.1-flash
     endpoint: https://api.deepseek.com/v1
     version_hash: deepseek-v4.1-flash-2026-09
-    locked_at: "2026-09-21T00:00:00Z"
+    locked_at: "2026-09-21T01:00:00Z"
     notes: "DeepSeek V4.1 Flash via OpenAI-compatible endpoint. Open-source baseline model (replaces Mistral Large for the open-source vs proprietary cross-model contrast in §5.5). Requires DEEPSEEK_API_KEY in environment."
 
   - provider: openai
     model_id: chatgpt-6
     endpoint: https://api.openai.com/v1
     version_hash: chatgpt-6-2026-09
-    locked_at: "2026-09-21T00:00:00Z"
+    locked_at: "2026-09-21T01:00:00Z"
     notes: "OpenAI ChatGPT 6 (current generation, replaces Codex from the previous freeze). Invoked via litellm OpenAI-compatible endpoint. Requires OPENAI_API_KEY in environment."
 
   - provider: anthropic
     model_id: claude-3-5-sonnet-20241022
     endpoint: https://api.anthropic.com
     version_hash: claude-3-5-sonnet-20241022
-    locked_at: "2026-09-21T00:00:00Z"
+    locked_at: "2026-09-21T01:00:00Z"
     notes: "Anthropic Claude 3.5 Sonnet via litellm. Requires ANTHROPIC_API_KEY. ⚠️ HK-BLOCKED: HK egress typically returns HTTP 403 from Anthropic. The Cross-Model Benchmarker (§5.5) treats Anthropic as an OPTIONAL row — if the call returns 403, that provider's verdict is recorded as seed=null with provider_unavailable flag and the cross-model aggregation continues with the remaining 4 providers. The §5.4 self-enhancement bias audit uses Anthropic only when the run is performed from a non-HK egress (e.g. via SOCKS proxy on the user's Mac)."
 
 # §3.5 freeze tag — propagated into every audit-log record.
 # All calls within one evaluation run share a freeze_tag so that
 # re-execution against the same freeze reproduces the same orderings,
 # severities and verdicts up to provider-side non-determinism.
-freeze_tag: "vce-2026-09-21-frozen"
+freeze_tag: "vce-2026-09-21-frozen-r2"
 
 # Generation parameters pinned across every call (per §B.6.4).
 generation_params:

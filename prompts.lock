@@ -17,8 +17,8 @@
 # or chain-of-thought scaffolding — these are first-turn completions
 # simulating "vibe coding" interaction (per §2.2).
 
-freeze_tag: "vce-2026-09-21-frozen"
-generated_at: "2026-09-21T00:00:00Z"
+freeze_tag: "vce-2026-09-21-frozen-r2"
+generated_at: "2026-09-21T01:00:00Z"
 
 prompts:
   # ---------------------------------------------------------------------------
