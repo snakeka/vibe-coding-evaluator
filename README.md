@@ -54,9 +54,19 @@ vibe-coding-evaluator/
 │   └── fixtures.py        # 3 illustrative samples (§5.6 Table 5.7)
 ├── corpus/                # §3.5 frozen input corpus (200 prompts)
 ├── results/               # Per-run output (gitignored)
-├── scripts/               # End-to-end driver scripts
+├── scripts/
 │   ├── run_full_evaluation.py
-│   └── generate_manifest.py
+│   ├── generate_manifest.py
+│   └── ui/                      # Streamlit web UI (7 pages)
+│       ├── app.py
+│       ├── pages/
+│       │   ├── 2_🔍_SAST.py
+│       │   ├── 3_⚖️_Judge.py
+│       │   ├── 4_🚀_Benchmark.py
+│       │   ├── 5_📊_Verdict_Matrix.py
+│       │   ├── 6_🔒_Manifest.py
+│       │   └── 7_🧪_Tests.py
+│       └── run_ui.sh
 ├── models.lock            # §B.6 freeze: provider / model / endpoint
 ├── prompts.lock           # §B.6 freeze: prompt SHA-256 hashes
 ├── manifest.sha256        # §B.6 per-run sealing artefact
@@ -75,25 +85,30 @@ git clone https://github.com/<your-handle>/vibe-coding-evaluator
 cd vibe-coding-evaluator
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e ".[dev]"
 
 # 2. Configure
-export OPENAI_API_KEY="sk-..."        # optional, only if using OpenAI provider
-export ANTHROPIC_API_KEY="sk-ant-..."  # optional, only if using Anthropic (HK egress blocked — see §5.5)
-export DEEPSEEK_API_KEY="..."          # optional, only if using DeepSeek provider
+export OPENAI_API_KEY="***"        # optional, only if using OpenAI provider
+export ANTHROPIC_API_KEY="***"  # optional, only if using Anthropic (HK egress blocked — see §5.5)
+export DEEPSEEK_API_KEY="***"          # optional, only if using DeepSeek provider
 export OLLAMA_BASE_URL="http://127.0.0.1:11434"  # default in models.lock; Ollama on user's Mac
 
-# 3. Run the illustrative 3-sample evaluation
+# 3a. Run the illustrative 3-sample evaluation (CLI)
 python scripts/run_full_evaluation.py \
     --prompts prompts.lock \
     --models models.lock \
     --corpus corpus/ \
     --out results/run-$(date +%Y%m%d-%H%M%S)
 
+# 3b. OR launch the Streamlit web UI (interactive)
+./scripts/ui/run_ui.sh
+# → opens http://localhost:8501 with 7 pages:
+#   Home / SAST / Judge / Benchmark / Verdict Matrix / Manifest / Tests
+
 # 4. Generate the SHA-256 manifest
 python scripts/generate_manifest.py --run-dir results/run-<id>/
 
-# 5. Inspect the dashboard
+# 5. Inspect the dashboard (CLI)
 open results/run-<id>/dashboard.html
 ```
 

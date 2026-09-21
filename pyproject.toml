@@ -53,10 +53,14 @@ test = [
 ]
 # Dashboard
 viz = [
-  "jinja2>=3.1",
+    "jinja2>=3.1",
+]
+# Web UI for the dissertation artefact (Streamlit)
+ui = [
+    "streamlit>=1.30",
 ]
 
-dev = ["vibe-coding-evaluator[test,sast,providers,viz]"]
+dev = ["vibe-coding-evaluator[test,sast,providers,viz,ui]"]
 
 [project.urls]
 "Source" = "https://github.com/snakeka/vibe-coding-evaluator"
